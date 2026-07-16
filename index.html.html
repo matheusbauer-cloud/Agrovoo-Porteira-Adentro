@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroVoo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060d06;--bg2:#0a1a0a;--bg3:#111827;
+  --border:#1f2d1f;--border2:#374151;
+  --text:#e5e7eb;--muted:#9ca3af;--dim:#6b7280;
+  --green:#22c55e;--gdark:#16a34a;--blue:#3b82f6;
+  --yellow:#eab308;--orange:#f97316;--red:#ef4444;--lime:#84cc16;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font-family:'DM Sans',sans-serif}
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:8px}
+.logo h1{color:var(--green);font-size:18px;font-weight:900;letter-spacing:-0.5px}
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;overflow-x:auto}
+.nav-btn{background:transparent;border:none;border-bottom:2px solid transparent;padding:12px 18px;color:var(--dim);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:all .15s}
+.nav-btn.active{color:var(--green);border-bottom-color:var(--green);font-weight:700}
+.content{max-width:800px;margin:0 auto;padding:24px 16px}
+.gap{display:flex;flex-direction:column;gap:18px}
+.badge{border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700}
+.b-op{background:#3b82f622;color:var(--blue);border:1px solid #3b82f644}
+.b-mg{background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644}
+.b-pend{background:#f9731622;color:var(--orange);border:1px solid #f9731644}
+.b-def{background:#22c55e22;color:var(--green);border:1px solid #22c55e44}
+.b-sem{background:#84cc1622;color:var(--lime);border:1px solid #84cc1644}
+.b-adu{background:#eab30822;color:var(--yellow);border:1px solid #eab30844}
+.b-notif{background:var(--red);color:#fff;border-radius:10px;padding:0 6px;font-size:10px;font-weight:900}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px}
+.app-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px}
+.app-card.pend{border-color:#f9731633}
+.lbl{display:block;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);margin-bottom:6px;text-transform:uppercase}
+.inp{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;outline:none;transition:border-color .15s}
+.inp:focus{border-color:var(--green)}
+textarea.inp{resize:vertical}
+.btn-green{background:linear-gradient(135deg,var(--green),var(--gdark));border:none;border-radius:10px;padding:13px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;width:100%;transition:opacity .15s}
+.btn-green:disabled{background:var(--border2);cursor:not-allowed;opacity:1}
+.btn-gray{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px;color:var(--muted);font-weight:600;font-size:13px;cursor:pointer}
+.btn-red-outline{background:transparent;border:1px solid #ef444433;border-radius:7px;padding:7px 12px;color:#ef444466;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-red-outline:hover{background:#ef444418;border-color:var(--red);color:var(--red)}
+.btn-red{background:var(--red);border:none;border-radius:8px;padding:11px;color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+.m-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 15px;color:var(--muted);font-weight:600;font-size:13px;cursor:pointer;transition:all .15s}
+.m-def{background:#22c55e22;border-color:var(--green);color:var(--green)}
+.m-sem{background:#84cc1622;border-color:var(--lime);color:var(--lime)}
+.m-adu{background:#eab30822;border-color:var(--yellow);color:var(--yellow)}
+.stars{display:flex;gap:4px}
+.star{font-size:28px;cursor:pointer;color:var(--border2);user-select:none;transition:color .1s}
+.star.on{color:var(--yellow)}
+.star.sm{font-size:15px;cursor:default}
+.overlay{position:fixed;inset:0;background:#000c;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--bg2);border-radius:16px;padding:28px;max-width:400px;width:100%}
+.modal-del{border:1px solid #ef444433}
+.modal-rate{border:1px solid #22c55e33}
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box{max-width:420px;width:100%;text-align:center}
+.role-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px 24px;cursor:pointer;display:flex;align-items:center;gap:16px;text-align:left;width:100%;margin-bottom:12px;transition:border-color .2s}
+.role-card:hover{border-color:#22c55e44}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.progress{background:var(--bg3);border-radius:6px;height:8px;overflow:hidden;flex:1}
+.progress-fill{height:100%;border-radius:6px;transition:width .5s}
+.params{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.param{background:var(--bg3);border-radius:6px;padding:6px 10px;font-size:12px}
+.param span{color:var(--dim)}
+.alert-g{background:#0f1f0f;border:1px solid #22c55e44;border-radius:10px;padding:14px;color:var(--green);font-weight:700}
+.alert-o{background:#1a0f00;border:1px solid #f9731633;border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px}
+.alert-r{background:#1f0000;border:1px solid #ef444444;border-radius:10px;padding:14px;color:var(--red);font-size:13px}
+.alert-w{background:#1f1000;border:1px solid #f9731644;border-radius:10px;padding:12px;color:var(--orange);font-size:12px}
+.ai-box{background:#0f1f0f;border:1px solid #22c55e44;border-radius:12px;padding:20px}
+.ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ai-metric{background:var(--bg3);border-radius:10px;padding:16px;text-align:center}
+.c-alta{background:#22c55e22;color:var(--green);border:1px solid #22c55e44;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700}
+.c-media{background:#eab30822;color:var(--yellow);border:1px solid #eab30844;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700}
+.c-baixa{background:#ef444422;color:var(--red);border:1px solid #ef444444;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.full{grid-column:1/-1}
+.row{display:flex;align-items:center;gap:10px}
+.section-title{color:#f0fdf4;font-size:20px;font-weight:900}
+.small-title{color:var(--muted);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px}
+.empty{text-align:center;padding:40px}
+.wind-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--muted);font-weight:600;font-size:12px;cursor:pointer;transition:all .15s;width:100%;text-align:left;margin-bottom:8px}
+.wind-btn.wa{background:#3b82f622;border-color:var(--blue);color:var(--blue)}
+/* LOADING SCREEN */
+.loading-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* CONFIG SCREEN */
+.config-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.config-box{max-width:500px;width:100%}
+.config-field{margin-bottom:14px}
+@media(max-width:480px){.stats{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.full{grid-column:1}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONFIGURAÇÃO — substitua com seus dados do Supabase
+// ════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://trqoeecakfxbsfyxqvad.supabase.co';
+const SUPABASE_KEY = 'sb_publishable__fZYEVq9G-5FVD1tRHs-mg_-TZzdiFf';
+// ════════════════════════════════════════════════════════════
+
+const MANEJOS = [
+  {id:'defensivos',label:'Defensivos',icon:'🧪',color:'#22c55e',bcls:'b-def',mcls:'m-def'},
+  {id:'semeadura', label:'Semeadura', icon:'🌱',color:'#84cc16',bcls:'b-sem',mcls:'m-sem'},
+  {id:'adubos',    label:'Adubos Sólidos',icon:'🌾',color:'#eab308',bcls:'b-adu',mcls:'m-adu'},
+];
+const WINDS=[
+  {label:'Calmo (0–5 km/h)',min:0,max:5},
+  {label:'Leve (5–10 km/h)',min:5,max:10},
+  {label:'Moderado (10–15 km/h)',min:10,max:15},
+  {label:'Forte (>15 km/h)',min:15,max:99},
+];
+
+// ── STATE ────────────────────────────────────────────────────
+let db = null;
+let S = {
+  loading: true,
+  role: null,
+  view: 'dashboard',
+  apps: [],
+  form: {date:'',manejo:'defensivos',altura:'',largura:'',vento:'',op:'',talhao:'',produto:'',obs:''},
+  formErr:'', formOk:false, formSaving:false,
+  rateId:null, rateNota:0, rateObs:'',
+  delId:null,
+  aiManejo:'defensivos', aiWind:0, aiResult:null, aiLoading:false,
+  dbError: false,
+};
+
+// ── SUPABASE INIT ────────────────────────────────────────────
+async function initDB(){
+  if(SUPABASE_URL === 'COLE_SUA_URL_AQUI'){
+    S.loading = false;
+    S.dbError = 'config';
+    render(); return;
+  }
+  try {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    await loadApps();
+  } catch(e) {
+    S.dbError = 'connect';
+    S.loading = false;
+    render();
+  }
+}
+
+async function loadApps(){
+  S.loading = true; render();
+  const { data, error } = await db.from('aplicacoes').select('*').order('created_at', {ascending:false});
+  if(error){ S.dbError='connect'; S.loading=false; render(); return; }
+  S.apps = data.map(row => ({
+    id: row.id,
+    date: row.data,
+    manejo: row.manejo,
+    altura: row.altura,
+    largura: row.largura,
+    vento: row.vento,
+    op: row.operador,
+    talhao: row.talhao,
+    produto: row.produto,
+    nota: row.nota,
+    obs: row.observacao || '',
+  }));
+  S.loading = false;
+  S.dbError = false;
+  render();
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+const manejoOf = id => MANEJOS.find(m=>m.id===id)||MANEJOS[0];
+const windOf   = v  => WINDS.find(r=>v>=r.min&&v<r.max)||WINDS[3];
+const rated    = ()  => S.apps.filter(a=>a.nota!==null&&a.nota!==undefined);
+const pending  = ()  => S.apps.filter(a=>a.nota===null||a.nota===undefined);
+const avgNota  = ()  => { const r=rated(); return r.length?(r.reduce((s,a)=>s+a.nota,0)/r.length).toFixed(1):'—'; };
+
+function badgeHtml(manejoId){
+  const m=manejoOf(manejoId);
+  return `<span class="badge ${m.bcls}">${m.icon} ${m.label}</span>`;
+}
+function starsHtml(val,fn,sm=false){
+  return `<div class="stars">`+[1,2,3,4,5].map(n=>{
+    const on=n<=val?'on':'';
+    const sz=sm?'sm':'';
+    const ev=fn?`onclick="${fn}(${n})"`:'' ;
+    return `<span class="star ${on} ${sz}" ${ev}>★</span>`;
+  }).join('')+`</div>`;
+}
+function paramsHtml(a){
+  return `<div class="params">
+    ${a.talhao?`<div class="param"><span>📍 Talhão: </span>${a.talhao}</div>`:''}
+    ${a.produto?`<div class="param"><span>🧴 Produto: </span>${a.produto}</div>`:''}
+    <div class="param"><span>↕ Altura: </span>${a.altura}m</div>
+    <div class="param"><span>↔ Faixa: </span>${a.largura}m</div>
+    <div class="param"><span>💨 Vento: </span>${a.vento}km/h</div>
+  </div>`;
+}
+
+// ── RENDER ───────────────────────────────────────────────────
+function render(){
+  const root = document.getElementById('root');
+  if(S.loading){ root.innerHTML = renderLoading(); return; }
+  if(S.dbError === 'config'){ root.innerHTML = renderConfig(); return; }
+  if(S.dbError === 'connect'){ root.innerHTML = renderConnectError(); return; }
+  if(!S.role){ root.innerHTML = renderLogin(); return; }
+  root.innerHTML = renderApp();
+}
+
+function renderLoading(){
+  return `<div class="loading-screen">
+    <div style="font-size:48px">🚁</div>
+    <div class="spinner"></div>
+    <div style="color:var(--dim);font-size:14px">Carregando dados...</div>
+  </div>`;
+}
+
+function renderConfig(){
+  return `<div class="config-screen">
+    <div class="config-box">
+      <div style="text-align:center;margin-bottom:32px">
+        <div style="font-size:48px;margin-bottom:12px">⚙️</div>
+        <h1 style="color:var(--green);font-size:24px;font-weight:900;margin-bottom:8px">Configurar AgroVoo</h1>
+        <p style="color:var(--dim);font-size:14px">Você precisa conectar ao banco de dados Supabase.<br>Siga o tutorial incluído no seu pacote.</p>
+      </div>
+      <div class="card">
+        <div style="color:var(--orange);font-size:13px;margin-bottom:20px;background:#1a0f00;border:1px solid #f9731633;border-radius:8px;padding:12px">
+          ⚠️ Abra o arquivo <strong>index.html</strong> num editor de texto e substitua as linhas:<br><br>
+          <code style="color:var(--green);font-size:12px">https://trqoeecakfxbsfyxqvad.supabase.co</code><br>
+          <code style="color:var(--green);font-size:12px">sb_publishable__fZYEVq9G-5FVD1tRHs-mg_-TZzdiFf</code><br><br>
+          com os dados do seu projeto Supabase.
+        </div>
+        <p style="color:var(--muted);font-size:13px">Consulte o <strong style="color:var(--text)">TUTORIAL.md</strong> para o passo a passo completo.</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderConnectError(){
+  return `<div class="loading-screen">
+    <div style="font-size:48px">❌</div>
+    <div style="color:var(--red);font-weight:700;font-size:16px">Erro de conexão</div>
+    <div style="color:var(--dim);font-size:13px;text-align:center;max-width:300px">Verifique sua URL e chave do Supabase, e se a tabela foi criada corretamente.</div>
+    <button class="btn-green" style="width:auto;padding:10px 24px" onclick="location.reload()">🔄 Tentar novamente</button>
+  </div>`;
+}
+
+function renderLogin(){
+  return `<div class="login">
+    <div class="login-box">
+      <div style="font-size:54px;margin-bottom:8px">🚁</div>
+      <h1 style="color:var(--green);font-size:30px;font-weight:900;letter-spacing:-1px;margin-bottom:4px">AgroVoo</h1>
+      <p style="color:var(--dim);font-size:13px;letter-spacing:1px;margin-bottom:36px">GESTÃO DE APLICAÇÕES COM DRONE</p>
+      <p style="color:var(--muted);margin-bottom:24px">Qual é o seu perfil?</p>
+      <button class="role-card" onclick="go('operador')">
+        <span style="font-size:30px">🎮</span>
+        <div><div style="color:var(--text);font-weight:700;font-size:15px">Operador</div><div style="color:var(--dim);font-size:13px">Registrar aplicações de campo</div></div>
+      </button>
+      <button class="role-card" onclick="go('gestor')">
+        <span style="font-size:30px">📋</span>
+        <div><div style="color:var(--text);font-weight:700;font-size:15px">Gestor / Proprietário</div><div style="color:var(--dim);font-size:13px">Avaliar aplicações e ver recomendações</div></div>
+      </button>
+    </div>
+  </div>`;
+}
+
+function renderApp(){
+  const isOp = S.role==='operador';
+  const navItems = isOp
+    ? [{id:'nova',label:'Nova Aplicação',icon:'➕'},{id:'historico',label:'Histórico',icon:'📋'}]
+    : [{id:'dashboard',label:'Dashboard',icon:'📊'},{id:'avaliar',label:'Avaliar',icon:'⭐',n:pending().length},{id:'historico',label:'Histórico',icon:'📋'},{id:'ia',label:'IA Recomenda',icon:'🤖'}];
+  const roleBadge = isOp
+    ? `<span class="badge b-op">🎮 Operador</span>`
+    : `<span class="badge b-mg">📋 Gestor</span>`;
+  let body='';
+  if(S.view==='nova')           body=renderNova();
+  else if(S.view==='dashboard') body=renderDash();
+  else if(S.view==='avaliar')   body=renderAvaliar();
+  else if(S.view==='historico') body=renderHistorico();
+  else if(S.view==='ia')        body=renderIA();
+  const delModal  = S.delId!==null ? renderDelModal() : '';
+  const rateModal = S.rateId!==null ? renderRateModal() : '';
+  return `
+    <div class="header">
+      <div class="logo"><span style="font-size:22px">🚁</span><h1>AgroVoo</h1></div>
+      <div class="row">${roleBadge}<button onclick="go(null)" style="background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--dim);font-size:11px;padding:3px 10px;cursor:pointer">Sair</button></div>
+    </div>
+    <div class="nav">
+      ${navItems.map(n=>`
+        <button class="nav-btn ${S.view===n.id?'active':''}" onclick="nav('${n.id}')">
+          ${n.icon} ${n.label}
+          ${n.n?`<span class="b-notif">${n.n}</span>`:''}
+        </button>`).join('')}
+    </div>
+    <div class="content">${body}</div>
+    ${delModal}${rateModal}`;
+}
+
+function renderDash(){
+  const r=rated(); const p=pending(); const avg=avgNota();
+  return `<div class="gap">
+    <h2 class="section-title">Visão Geral</h2>
+    <div class="stats">
+      <div class="stat"><div style="font-size:24px;margin-bottom:4px">📋</div><div style="font-weight:900;font-size:22px;color:var(--blue)">${S.apps.length}</div><div style="color:var(--dim);font-size:11px;margin-top:2px">Total</div></div>
+      <div class="stat"><div style="font-size:24px;margin-bottom:4px">⏳</div><div style="font-weight:900;font-size:22px;color:var(--orange)">${p.length}</div><div style="color:var(--dim);font-size:11px;margin-top:2px">Pendentes</div></div>
+      <div class="stat"><div style="font-size:24px;margin-bottom:4px">⭐</div><div style="font-weight:900;font-size:22px;color:var(--yellow)">${avg}${avg!=='—'?' ★':''}</div><div style="color:var(--dim);font-size:11px;margin-top:2px">Nota Média</div></div>
+    </div>
+    <div class="card">
+      <div class="small-title">Notas por Tipo de Manejo</div>
+      ${MANEJOS.map(m=>{
+        const ma=r.filter(a=>a.manejo===m.id);
+        const av=ma.length?(ma.reduce((s,a)=>s+a.nota,0)/ma.length):null;
+        return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <span style="font-size:18px">${m.icon}</span>
+          <span style="color:var(--text);font-size:13px;width:130px">${m.label}</span>
+          <div class="progress"><div class="progress-fill" style="width:${av?av/5*100:0}%;background:${m.color}"></div></div>
+          <span style="color:${m.color};font-weight:700;font-size:13px;width:32px;text-align:right">${av?av.toFixed(1):'—'}</span>
+          <span style="color:var(--dim);font-size:11px">(${ma.length})</span>
+        </div>`;
+      }).join('')}
+    </div>
+    ${p.length?`<div class="alert-o">
+      <span style="font-size:24px">⚠️</span>
+      <div style="flex:1"><div style="color:var(--orange);font-weight:700;font-size:14px">${p.length} aplicação(ões) aguardando avaliação</div></div>
+      <button onclick="nav('avaliar')" style="background:var(--orange);border:none;border-radius:8px;padding:8px 14px;color:#fff;font-weight:700;font-size:13px;cursor:pointer">Avaliar</button>
+    </div>`:''}
+  </div>`;
+}
+
+function renderNova(){
+  const f=S.form;
+  const hint=f.vento?`<div style="background:var(--bg3);border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px"><span>💨</span><span style="color:var(--muted);font-size:12px">Condição: <strong style="color:var(--text)">${windOf(parseFloat(f.vento)).label}</strong></span></div>`:'';
+  return `<div class="gap">
+    <h2 class="section-title">Registrar Nova Aplicação</h2>
+    ${S.formOk?`<div class="alert-g">✅ Aplicação salva no banco de dados!</div>`:''}
+    <div class="card gap" style="gap:16px">
+      <div>
+        <label class="lbl">Tipo de Manejo *</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${MANEJOS.map(m=>`<button class="m-btn ${f.manejo===m.id?m.mcls:''}" onclick="setManejo('${m.id}')">${m.icon} ${m.label}</button>`).join('')}
+        </div>
+      </div>
+      <div class="two">
+        <div><label class="lbl">Data *</label><input type="date" class="inp" value="${f.date}" onchange="sf('date',this.value)"></div>
+        <div><label class="lbl">Operador *</label><input type="text" class="inp" placeholder="Ex: Carlos" value="${f.op}" oninput="sf('op',this.value)"></div>
+        <div class="full"><label class="lbl">Talhão *</label><input type="text" class="inp" placeholder="Ex: Talhão 1, Fundão, Morro" value="${f.talhao}" oninput="sf('talhao',this.value)"></div>
+        <div class="full"><label class="lbl">Produto Aplicado *</label><input type="text" class="inp" placeholder="Ex: Azevém, Dessecação com glifosato, Ureia" value="${f.produto}" oninput="sf('produto',this.value)"></div>
+        <div><label class="lbl">Altura de Voo (m) *</label><input type="number" step="0.1" class="inp" placeholder="Ex: 3.5" value="${f.altura}" oninput="sf('altura',this.value)"></div>
+        <div><label class="lbl">Largura de Faixa (m) *</label><input type="number" step="0.1" class="inp" placeholder="Ex: 6.0" value="${f.largura}" oninput="sf('largura',this.value)"></div>
+        <div class="full"><label class="lbl">Velocidade do Vento (km/h) *</label><input type="number" step="0.5" class="inp" placeholder="Ex: 8" value="${f.vento}" oninput="sf('vento',this.value)"></div>
+      </div>
+      ${hint}
+      <div><label class="lbl">Observações</label><textarea class="inp" rows="3" placeholder="Condições, problemas encontrados..." oninput="sf('obs',this.value)">${f.obs}</textarea></div>
+      ${S.formErr?`<div style="color:var(--red);font-size:13px">⚠️ ${S.formErr}</div>`:''}
+      <button class="btn-green" onclick="submitApp()" ${S.formSaving?'disabled':''}>
+        ${S.formSaving?'⏳ Salvando...':'✅ Registrar Aplicação'}
+      </button>
+    </div>
+  </div>`;
+}
+
+function renderAvaliar(){
+  const p=pending();
+  if(!p.length) return `<div class="gap"><h2 class="section-title">Avaliar Aplicações</h2><div class="card"><div class="empty"><div style="font-size:40px;margin-bottom:10px">✅</div><div style="color:var(--green);font-weight:700">Todas avaliadas!</div></div></div></div>`;
+  return `<div class="gap">
+    <h2 class="section-title">Avaliar Aplicações</h2>
+    ${p.map(a=>`
+      <div class="app-card pend">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div>
+            <div style="color:var(--muted);font-size:11px;margin-bottom:4px">${a.date} · ${a.op}</div>
+            ${badgeHtml(a.manejo)}
+            ${a.talhao?`<div style="color:var(--text);font-size:13px;font-weight:600;margin-top:6px">📍 ${a.talhao}</div>`:''}
+            ${a.produto?`<div style="color:var(--muted);font-size:12px;margin-top:2px">🧴 ${a.produto}</div>`:''}
+          </div>
+          <span class="badge b-pend">Pendente</span>
+        </div>
+        ${paramsHtml(a)}
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button onclick="openRate(${a.id})" style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px;color:var(--yellow);font-weight:700;font-size:13px;cursor:pointer">⭐ Dar Nota</button>
+          <button class="btn-red-outline" onclick="openDel(${a.id})">🗑 Excluir</button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderHistorico(){
+  if(!S.apps.length) return `<div class="gap"><h2 class="section-title">Histórico</h2><div class="card"><div class="empty"><div style="font-size:40px;margin-bottom:10px">📋</div><div style="color:var(--muted);font-weight:700">Nenhuma aplicação ainda</div></div></div></div>`;
+  return `<div class="gap">
+    <h2 class="section-title">Histórico de Aplicações</h2>
+    <button onclick="loadApps()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted);font-size:12px;cursor:pointer;align-self:flex-start">🔄 Atualizar</button>
+    ${S.apps.map(a=>`
+      <div class="app-card ${!a.nota?'pend':''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div>
+            <div style="color:var(--muted);font-size:11px;margin-bottom:4px">${a.date} · ${a.op}</div>
+            ${badgeHtml(a.manejo)}
+            ${a.talhao?`<div style="color:var(--text);font-size:13px;font-weight:600;margin-top:6px">📍 ${a.talhao}</div>`:''}
+            ${a.produto?`<div style="color:var(--muted);font-size:12px;margin-top:2px">🧴 ${a.produto}</div>`:''}
+          </div>
+          ${a.nota ? starsHtml(a.nota,null,true) : `<span class="badge b-pend">Pendente</span>`}
+        </div>
+        ${paramsHtml(a)}
+        ${a.obs?`<div style="color:var(--dim);font-size:12px;margin-top:8px;font-style:italic">"${a.obs}"</div>`:''}
+        <div style="margin-top:12px;display:flex;justify-content:flex-end">
+          <button class="btn-red-outline" onclick="openDel(${a.id})">🗑 Excluir</button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderIA(){
+  const r=rated();
+  return `<div class="gap">
+    <div><h2 class="section-title">Recomendação por IA</h2><p style="color:var(--dim);font-size:13px;margin-top:4px">Com base em ${r.length} aplicações avaliadas.</p></div>
+    ${r.length<3
+      ? `<div class="card"><div class="empty"><div style="font-size:40px;margin-bottom:10px">📊</div><div style="color:var(--muted);font-weight:700">Dados insuficientes</div><div style="color:var(--dim);font-size:13px;margin-top:4px">São necessárias ao menos 3 aplicações avaliadas</div></div></div>`
+      : `<div class="card gap" style="gap:16px">
+          <div class="two">
+            <div>
+              <label class="lbl">Tipo de Manejo</label>
+              ${MANEJOS.map(m=>`<button class="m-btn ${S.aiManejo===m.id?m.mcls:''}" style="width:100%;margin-bottom:8px" onclick="setAIM('${m.id}')">${m.icon} ${m.label}</button>`).join('')}
+            </div>
+            <div>
+              <label class="lbl">Faixa de Vento</label>
+              ${WINDS.map((w,i)=>`<button class="wind-btn ${S.aiWind===i?'wa':''}" onclick="setAIW(${i})">💨 ${w.label}</button>`).join('')}
+            </div>
+          </div>
+          <button class="btn-green" onclick="runAI()" ${S.aiLoading?'disabled':''}>
+            ${S.aiLoading?'⏳ Analisando dados...':'🤖 Gerar Recomendação com IA'}
+          </button>
+          ${S.aiResult?renderAIResult():''}
+        </div>`}
+  </div>`;
+}
+
+function renderAIResult(){
+  const r=S.aiResult;
+  if(r.erro) return `<div class="alert-r">❌ ${r.erro}</div>`;
+  const cc=r.confianca==='Alta'?'c-alta':r.confianca==='Média'?'c-media':'c-baixa';
+  return `<div class="ai-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <span style="color:var(--green);font-weight:700;font-size:14px">✅ Recomendação Gerada</span>
+      <span class="${cc}">Confiança: ${r.confianca}</span>
+    </div>
+    <div class="ai-grid">
+      <div class="ai-metric"><div style="color:var(--dim);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Altura Ideal</div><div style="font-weight:900;font-size:32px;color:var(--green)">${r.altura_recomendada}<span style="font-size:13px;color:var(--dim)">m</span></div></div>
+      <div class="ai-metric"><div style="color:var(--dim);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Largura de Faixa</div><div style="font-weight:900;font-size:32px;color:var(--blue)">${r.largura_recomendada}<span style="font-size:13px;color:var(--dim)">m</span></div></div>
+    </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-top:12px"><div style="color:var(--muted);font-size:12px;line-height:1.6">📊 ${r.justificativa}</div></div>
+    ${r.alertas?`<div class="alert-w" style="margin-top:10px">⚠️ ${r.alertas}</div>`:''}
+  </div>`;
+}
+
+function renderDelModal(){
+  const a=S.apps.find(x=>x.id===S.delId);
+  if(!a) return '';
+  return `<div class="overlay" onclick="if(event.target===this)closeDel()">
+    <div class="modal modal-del">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:44px;margin-bottom:10px">🗑</div>
+        <h3 style="color:#f0fdf4;font-size:17px;margin-bottom:6px">Excluir aplicação?</h3>
+        <p style="color:var(--dim);font-size:13px">Esta ação não pode ser desfeita.</p>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:20px">
+        <div style="color:var(--muted);font-size:12px;margin-bottom:6px">${a.date} · ${a.op}</div>
+        ${badgeHtml(a.manejo)}
+        ${a.talhao?`<div style="color:var(--text);font-size:13px;margin-top:8px">📍 ${a.talhao}</div>`:''}
+        ${a.produto?`<div style="color:var(--muted);font-size:12px;margin-top:2px">🧴 ${a.produto}</div>`:''}
+        ${paramsHtml(a)}
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-gray" style="flex:1" onclick="closeDel()">Cancelar</button>
+        <button class="btn-red" style="flex:2" onclick="confirmDel()">🗑 Sim, excluir</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderRateModal(){
+  const a=S.apps.find(x=>x.id===S.rateId);
+  if(!a) return '';
+  return `<div class="overlay" onclick="if(event.target===this)closeRate()">
+    <div class="modal modal-rate">
+      <h3 style="color:#f0fdf4;margin:0 0 4px;font-size:17px">Avaliar Aplicação</h3>
+      <div style="color:var(--dim);font-size:12px;margin-bottom:4px">${a.date} · ${a.op}</div>
+      ${a.talhao?`<div style="color:var(--text);font-size:13px;font-weight:600;margin-bottom:2px">📍 ${a.talhao}</div>`:''}
+      ${a.produto?`<div style="color:var(--muted);font-size:12px;margin-bottom:12px">🧴 ${a.produto}</div>`:'<div style="margin-bottom:12px"></div>'}
+      ${badgeHtml(a.manejo)}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0">
+        ${[['Altura',a.altura+'m'],['Faixa',a.largura+'m'],['Vento',a.vento+'km/h']].map(([l,v])=>`
+          <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center">
+            <div style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px">${l}</div>
+            <div style="color:var(--text);font-weight:700;font-size:14px;margin-top:2px">${v}</div>
+          </div>`).join('')}
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="color:var(--muted);font-size:12px;margin-bottom:8px">Nota de qualidade:</div>
+        ${starsHtml(S.rateNota,'setNota')}
+      </div>
+      <textarea class="inp" rows="2" placeholder="Observação do gestor (opcional)" style="margin-bottom:16px" oninput="S.rateObs=this.value">${S.rateObs}</textarea>
+      <div style="display:flex;gap:10px">
+        <button class="btn-gray" style="flex:1" onclick="closeRate()">Cancelar</button>
+        <button onclick="submitRate()" style="flex:2;background:${S.rateNota?'linear-gradient(135deg,#22c55e,#16a34a)':'var(--border2)'};border:none;border-radius:8px;padding:11px;color:#fff;font-weight:700;font-size:13px;cursor:${S.rateNota?'pointer':'not-allowed'}"
+          ${!S.rateNota?'disabled':''}>Salvar Avaliação</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── ACTIONS ──────────────────────────────────────────────────
+function go(role){ S.role=role; S.view=role==='operador'?'nova':'dashboard'; render(); }
+function nav(v){ S.view=v; S.aiResult=null; render(); }
+function setManejo(id){ S.form.manejo=id; render(); }
+function sf(f,v){ S.form[f]=v; }
+
+async function submitApp(){
+  const f=S.form;
+  if(!f.date||!f.altura||!f.largura||!f.vento||!f.op||!f.talhao||!f.produto){
+    S.formErr='Preencha todos os campos obrigatórios.'; render(); return;
+  }
+  S.formSaving=true; S.formErr=''; render();
+  const { data, error } = await db.from('aplicacoes').insert([{
+    data: f.date,
+    manejo: f.manejo,
+    altura: parseFloat(f.altura),
+    largura: parseFloat(f.largura),
+    vento: parseFloat(f.vento),
+    operador: f.op,
+    talhao: f.talhao,
+    produto: f.produto,
+    observacao: f.obs,
+    nota: null,
+  }]).select().single();
+  S.formSaving=false;
+  if(error){ S.formErr='Erro ao salvar. Tente novamente.'; render(); return; }
+  S.apps.unshift({id:data.id,date:data.data,manejo:data.manejo,altura:data.altura,largura:data.largura,vento:data.vento,op:data.operador,talhao:data.talhao,produto:data.produto,nota:null,obs:data.observacao||''});
+  S.form={date:'',manejo:'defensivos',altura:'',largura:'',vento:'',op:'',talhao:'',produto:'',obs:''};
+  S.formOk=true; render();
+  setTimeout(()=>{S.formOk=false;render();},3000);
+}
+
+function openDel(id){ S.delId=id; render(); }
+function closeDel(){ S.delId=null; render(); }
+async function confirmDel(){
+  await db.from('aplicacoes').delete().eq('id', S.delId);
+  S.apps=S.apps.filter(a=>a.id!==S.delId);
+  S.delId=null; render();
+}
+
+function openRate(id){ S.rateId=id; S.rateNota=0; S.rateObs=''; render(); }
+function closeRate(){ S.rateId=null; render(); }
+function setNota(n){ S.rateNota=n; render(); }
+async function submitRate(){
+  if(!S.rateNota) return;
+  const { error } = await db.from('aplicacoes').update({ nota: S.rateNota, observacao: S.rateObs }).eq('id', S.rateId);
+  if(error){ alert('Erro ao salvar avaliação.'); return; }
+  const i=S.apps.findIndex(a=>a.id===S.rateId);
+  S.apps[i].nota=S.rateNota; S.apps[i].obs=S.rateObs;
+  S.rateId=null; render();
+}
+
+function setAIM(id){ S.aiManejo=id; S.aiResult=null; render(); }
+function setAIW(i){ S.aiWind=i; S.aiResult=null; render(); }
+async function runAI(){
+  S.aiLoading=true; S.aiResult=null; render();
+  const r=rated(); const w=WINDS[S.aiWind];
+  const ctx=r.map(a=>`Manejo:${a.manejo}, Talhão:${a.talhao||'—'}, Produto:${a.produto||'—'}, Altura:${a.altura}m, Largura:${a.largura}m, Vento:${a.vento}km/h, Nota:${a.nota}/5, Obs:${a.obs||'—'}`).join('\n');
+  const prompt=`Você é especialista em drones agrícolas. Analise os dados e gere recomendações.
+
+Dados históricos:
+${ctx}
+
+Para manejo "${S.aiManejo}" com vento ${w.label} (${w.min}–${w.max}km/h):
+1. Altura de voo ideal (metros)
+2. Largura de faixa ideal (metros)
+3. Justificativa técnica baseada nos dados reais
+
+Responda SOMENTE em JSON:
+{"altura_recomendada":número,"largura_recomendada":número,"justificativa":"texto","confianca":"Alta|Média|Baixa","alertas":"texto ou null"}`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const d=await res.json();
+    const txt=(d.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+    S.aiResult=JSON.parse(txt);
+  }catch(e){ S.aiResult={erro:'Erro ao consultar a IA. Verifique a conexão.'}; }
+  S.aiLoading=false; render();
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+render();
+initDB();
+</script>
+</body>
+</html>
